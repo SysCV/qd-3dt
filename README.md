@@ -64,7 +64,7 @@ Please refer to [MODEL_ZOO.md](./readme/MODEL_ZOO.md) for reproducing the result
 
 ## Contact
 
-This repo is currently maintained by Hou-Ning Hu ([@eborboihuc](http://github.com/eborboihuc)), Yung-Hsu Yang ([@RoyYang0714](https://github.com/RoyYang0714)).
+This repo is currently maintained by Hou-Ning Hu ([@eborboihuc](http://github.com/eborboihuc)), Yung-Hsu Yang ([@RoyYang0714](https://github.com/RoyYang0714)), and Tobias Fischer ([@tobiasfshr](https://github.com/tobiasfshr)).
 
 
 ## License
