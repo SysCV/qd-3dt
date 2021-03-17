@@ -35,6 +35,9 @@ mkdir data work_dirs checkpoints
 ```
 
 - You can create a virtual environment by the following:
+
+We use [pyenv](https://github.com/pyenv/pyenv#installation) as our Python version management tool. If you have experienced some installation issue, please refer to [Troubleshooting](https://github.com/pyenv/pyenv/wiki#suggested-build-environment). You may also use [Conda](https://conda.io/projects/conda/en/latest/user-guide/install/index.html) for the following installation.
+
 ```bash
 # Add path to bashrc 
 echo -e '\nexport PYENV_ROOT="$HOME/.pyenv"\nexport PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
@@ -75,6 +78,7 @@ bash install.sh
 pyenv virtualenv 3.7.6 Nusc
 pyenv activate Nusc
 pip install nuscenes-devkit
+pip install -r requirements_nusc.txt
 ```
 
 - Install AMOTA@0.2 evaluation python-sdk.
