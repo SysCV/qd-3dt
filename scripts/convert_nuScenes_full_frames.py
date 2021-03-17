@@ -1,9 +1,6 @@
 import os
 import os.path as osp
-import copy
-import json
 from tqdm import tqdm
-from typing import Tuple, Union
 from pathlib import Path
 from collections import defaultdict
 
@@ -11,15 +8,16 @@ import numpy as np
 from pyquaternion import Quaternion
 from scipy.spatial.transform import Rotation as R
 
-import mmcv
-
 from nuscenes.nuscenes import NuScenes
 from nuscenes.utils import splits
 from nuscenes.utils.geometry_utils import transform_matrix
 
+from scripts.bdd_utils import dump_json
 
-USED_SENSOR = ['CAM_FRONT', 'CAM_FRONT_RIGHT', 'CAM_BACK_RIGHT',
-               'CAM_BACK', 'CAM_BACK_LEFT', 'CAM_FRONT_LEFT']
+USED_SENSOR = [
+    'CAM_FRONT', 'CAM_FRONT_RIGHT', 'CAM_BACK_RIGHT', 'CAM_BACK',
+    'CAM_BACK_LEFT', 'CAM_FRONT_LEFT'
+]
 
 cats_mapping = {
     'bicycle': 1,
@@ -99,7 +97,10 @@ def nusc2coco(data_dir, nusc, scenes, input_seq_id):
         print(f'converting {sensor}')
         seq_id = input_seq_id
 
-        first_samples = [sample for sample in nusc.sample if sample['prev'] == '' and sample["scene_token"] in scenes]
+        first_samples = [
+            sample for sample in nusc.sample
+            if sample['prev'] == '' and sample["scene_token"] in scenes
+        ]
 
         for sample in tqdm(first_samples):
 
@@ -111,22 +112,24 @@ def nusc2coco(data_dir, nusc, scenes, input_seq_id):
                 width = sensor_data['width']
 
                 cs_record = nusc.get('calibrated_sensor',
-                                        sensor_data['calibrated_sensor_token'])
-                pose_record = nusc.get('ego_pose', sensor_data['ego_pose_token'])
+                                     sensor_data['calibrated_sensor_token'])
+                pose_record = nusc.get('ego_pose',
+                                       sensor_data['ego_pose_token'])
                 global_from_car = transform_matrix(
                     pose_record['translation'],
                     Quaternion(pose_record['rotation']),
                     inverse=False)
-                car_from_sensor = transform_matrix(
-                    cs_record['translation'],
-                    Quaternion(cs_record['rotation']),
-                    inverse=False)
+                car_from_sensor = transform_matrix(cs_record['translation'],
+                                                   Quaternion(
+                                                       cs_record['rotation']),
+                                                   inverse=False)
                 trans_matrix = np.dot(global_from_car, car_from_sensor)
 
                 rotation_matrix = trans_matrix[:3, :3]
                 position = trans_matrix[:3, 3:].flatten().tolist()
 
-                rotation = R.from_matrix(rotation_matrix).as_euler('xyz').tolist()
+                rotation = R.from_matrix(rotation_matrix).as_euler(
+                    'xyz').tolist()
                 pose_dict = dict(rotation=rotation, position=position)
 
                 camera_intrinsic = cs_record['camera_intrinsic']
@@ -134,20 +137,19 @@ def nusc2coco(data_dir, nusc, scenes, input_seq_id):
                 calib[:3, :3] = camera_intrinsic
                 calib = calib[:3].tolist()
 
-                img_info = dict(
-                    file_name=img_name,
-                    cali=calib,
-                    pose=pose_dict,
-                    sensor_id=SENSOR_ID[sensor],
-                    height=height,
-                    width=width,
-                    fov=60,
-                    near_clip=0.15,
-                    id=len(ret['images']),
-                    video_id=vid_id,
-                    index=fr_id,
-                    key_frame_index=key_fr_id,
-                    is_key_frame=sensor_data['is_key_frame'])
+                img_info = dict(file_name=img_name,
+                                cali=calib,
+                                pose=pose_dict,
+                                sensor_id=SENSOR_ID[sensor],
+                                height=height,
+                                width=width,
+                                fov=60,
+                                near_clip=0.15,
+                                id=len(ret['images']),
+                                video_id=vid_id,
+                                index=fr_id,
+                                key_frame_index=key_fr_id,
+                                is_key_frame=sensor_data['is_key_frame'])
                 ret['images'].append(img_info)
 
                 if sensor_data['is_key_frame']:
@@ -157,11 +159,10 @@ def nusc2coco(data_dir, nusc, scenes, input_seq_id):
                 if sensor_data['next'] != '':
                     sensor_data = nusc.get('sample_data', sensor_data['next'])
                 else:
-                    vid_info = dict(
-                            id=vid_id,
-                            name=f'{seq_id:05}_{SENSOR_ID[sensor]}',
-                            scene_token=sample["scene_token"],
-                            n_frames=fr_id)
+                    vid_info = dict(id=vid_id,
+                                    name=f'{seq_id:05}_{SENSOR_ID[sensor]}',
+                                    scene_token=sample["scene_token"],
+                                    n_frames=fr_id)
                     ret['videos'].append(vid_info)
                     seq_id += 1
                     vid_id += 1
@@ -173,6 +174,10 @@ def nusc2coco(data_dir, nusc, scenes, input_seq_id):
 
 
 def convert_track(data_dir, version):
+    if not osp.exists(osp.join(data_dir, version)):
+        print(f"Folder {osp.join(data_dir, version)} is not found")
+        return None
+    
     nusc = NuScenes(version=version, dataroot=data_dir, verbose=True)
 
     available_vers = ["v1.0-trainval", "v1.0-test", "v1.0-mini"]
@@ -218,8 +223,7 @@ def convert_track(data_dir, version):
     if test:
         print(f"test scene: {len(train_scenes)}")
     else:
-        print(
-            f"val scene: {len(val_scenes)}")
+        print(f"val scene: {len(val_scenes)}")
 
     print('=====')
     if test:
@@ -235,22 +239,23 @@ def convert_track(data_dir, version):
 
 def main():
     data_dir = 'data/nuscenes'
-    out_dir = 'data/nuscenes'
+    out_dir = 'data/nuscenes/anns'
 
-    print('Convert Nuscenes Tracking dataset to COCO style.')
+    print('Convert Nuscenes Tracking dataset (full frames) to COCO style.')
+    if not osp.isfile(out_dir):
+        os.makedirs(out_dir, exist_ok=True)
 
     print("tracking mini")
     anns = convert_track(data_dir, version='v1.0-mini')
-    mmcv.dump(anns,
-              osp.join(out_dir, 'anns', 'tracking_val_mini_full_frames.json'))
+    dump_json(osp.join(out_dir, 'tracking_val_mini_full_frames.json'), anns)
 
     print("tracking trainval")
     anns = convert_track(data_dir, version='v1.0-trainval')
-    mmcv.dump(anns, osp.join(out_dir, 'anns', 'tracking_val_full_frames.json'))
+    dump_json(osp.join(out_dir, 'tracking_val_full_frames.json'), anns)
 
     print('tracking test')
     anns = convert_track(data_dir, version='v1.0-test')
-    mmcv.dump(anns, osp.join(out_dir, 'anns', 'tracking_test_full_frames.json'))
+    dump_json(osp.join(out_dir, 'tracking_test_full_frames.json'), anns)
 
 
 if __name__ == "__main__":

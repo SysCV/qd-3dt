@@ -1,7 +1,6 @@
 import os
 import os.path as osp
 import copy
-import json
 from tqdm import tqdm
 from typing import Tuple, Union
 from pathlib import Path
@@ -11,12 +10,12 @@ import numpy as np
 from pyquaternion import Quaternion
 from scipy.spatial.transform import Rotation as R
 
-import mmcv
-
 from nuscenes.nuscenes import NuScenes
 from nuscenes.utils import splits
 from nuscenes.utils.geometry_utils import view_points, transform_matrix, BoxVisibility
 from nuscenes.utils.data_classes import Box
+
+from scripts.bdd_utils import dump_json
 
 trackid_maps = dict()
 
@@ -219,14 +218,14 @@ def nusc2coco(data_dir, nusc, scenes, input_seq_id):
             cs_record = nusc.get('calibrated_sensor',
                                  sd_record['calibrated_sensor_token'])
             pose_record = nusc.get('ego_pose', sd_record['ego_pose_token'])
-            global_from_car = transform_matrix(
-                pose_record['translation'],
-                Quaternion(pose_record['rotation']),
-                inverse=False)
-            car_from_sensor = transform_matrix(
-                cs_record['translation'],
-                Quaternion(cs_record['rotation']),
-                inverse=False)
+            global_from_car = transform_matrix(pose_record['translation'],
+                                               Quaternion(
+                                                   pose_record['rotation']),
+                                               inverse=False)
+            car_from_sensor = transform_matrix(cs_record['translation'],
+                                               Quaternion(
+                                                   cs_record['rotation']),
+                                               inverse=False)
             trans_matrix = np.dot(global_from_car, car_from_sensor)
 
             rotation_matrix = trans_matrix[:3, :3]
@@ -241,18 +240,17 @@ def nusc2coco(data_dir, nusc, scenes, input_seq_id):
             calib[:3, :3] = camera_intrinsic
             calib = calib[:3].tolist()
 
-            img_info = dict(
-                file_name=img_name,
-                cali=calib,
-                pose=pose_dict,
-                sensor_id=SENSOR_ID[sensor],
-                height=height,
-                width=width,
-                fov=60,
-                near_clip=0.15,
-                id=len(ret['images']),
-                video_id=vid_id,
-                index=fr_id)
+            img_info = dict(file_name=img_name,
+                            cali=calib,
+                            pose=pose_dict,
+                            sensor_id=SENSOR_ID[sensor],
+                            height=height,
+                            width=width,
+                            fov=60,
+                            near_clip=0.15,
+                            id=len(ret['images']),
+                            video_id=vid_id,
+                            index=fr_id)
             ret['images'].append(img_info)
 
             anns = []
@@ -274,10 +272,9 @@ def nusc2coco(data_dir, nusc, scenes, input_seq_id):
                 if instance_token not in trackid_maps.keys():
                     trackid_maps[instance_token] = len(trackid_maps)
 
-                bbox = project_kitti_box_to_image(
-                    copy.deepcopy(box),
-                    camera_intrinsic,
-                    imsize=(width, height))
+                bbox = project_kitti_box_to_image(copy.deepcopy(box),
+                                                  camera_intrinsic,
+                                                  imsize=(width, height))
 
                 if bbox is None:
                     continue
@@ -329,11 +326,10 @@ def nusc2coco(data_dir, nusc, scenes, input_seq_id):
 
             fr_id += 1
             if sample['next'] == '':
-                vid_info = dict(
-                    id=vid_id,
-                    name=f'{seq_id:05}_{SENSOR_ID[sensor]}',
-                    scene_token=sample["scene_token"],
-                    n_frames=fr_id)
+                vid_info = dict(id=vid_id,
+                                name=f'{seq_id:05}_{SENSOR_ID[sensor]}',
+                                scene_token=sample["scene_token"],
+                                n_frames=fr_id)
                 ret['videos'].append(vid_info)
                 seq_id += 1
                 vid_id += 1
@@ -343,6 +339,13 @@ def nusc2coco(data_dir, nusc, scenes, input_seq_id):
 
 
 def convert_track(data_dir, version):
+
+    if not osp.exists(osp.join(data_dir, version)):
+        print(f"Folder {osp.join(data_dir, version)} is not found")
+        if "test" in version:
+            return None
+        else:
+            return None, None
 
     nusc = NuScenes(version=version, dataroot=data_dir, verbose=True)
 
@@ -414,24 +417,25 @@ def convert_track(data_dir, version):
 
 def main():
     data_dir = 'data/nuscenes'
-    out_dir = 'data/nuscenes'
+    out_dir = 'data/nuscenes/anns'
 
     print('Convert Nuscenes Tracking dataset to COCO style.')
+    if not osp.isfile(out_dir):
+        os.makedirs(out_dir, exist_ok=True)
 
     print("tracking mini")
     train_anns, val_anns = convert_track(data_dir, version='v1.0-mini')
-    mmcv.dump(train_anns, osp.join(out_dir, 'anns',
-                                   'tracking_train_mini.json'))
-    mmcv.dump(val_anns, osp.join(out_dir, 'anns', 'tracking_val_mini.json'))
+    dump_json(osp.join(out_dir, 'tracking_train_mini.json'), train_anns)
+    dump_json(osp.join(out_dir, 'tracking_val_mini.json'), val_anns)
 
     print("tracking trainval")
     train_anns, val_anns = convert_track(data_dir, version='v1.0-trainval')
-    mmcv.dump(train_anns, osp.join(out_dir, 'anns', 'tracking_train.json'))
-    mmcv.dump(val_anns, osp.join(out_dir, 'anns', 'tracking_val.json'))
+    dump_json(osp.join(out_dir, 'tracking_train.json'), train_anns)
+    dump_json(osp.join(out_dir, 'tracking_val.json'), val_anns)
 
     print('tracking test')
     anns = convert_track(data_dir, version='v1.0-test')
-    mmcv.dump(anns, osp.join(out_dir, 'anns', 'tracking_test.json'))
+    dump_json(osp.join(out_dir, 'tracking_test.json'), anns)
 
 
 if __name__ == "__main__":

@@ -46,6 +46,7 @@ gta_merge_maps = {
     'DontCare': 'dontcare'
 }
 
+# 1080, 1920
 data_amount_dict = {'train': 1000, 'val': 100, 'test': 400}
 data_set_dict = {
     'val_mini': {
@@ -78,10 +79,6 @@ data_set_dict = {
     }
 }
 
-# 1080, 1920
-data_dir = 'data/GTA/'
-out_dir = 'data/GTA/'
-
 
 def parse_args():
     parser = argparse.ArgumentParser(description='GTA Tracking to COCO format')
@@ -94,13 +91,17 @@ def parse_args():
     return parser.parse_args()
 
 
-def convert_track(subset: str):
+def convert_track(data_dir, subset: str):
     gta_anno = defaultdict(list)
 
     set_size = data_set_dict[subset]['amount']
     subset_folder = data_set_dict[subset]['folder']
     img_dir = os.path.join(data_dir, subset_folder, 'image')
     label_dir = os.path.join(data_dir, subset_folder, 'label')
+
+    if not osp.exists(img_dir):
+        print(f"Folder {img_dir} is not found")
+        return None
 
     if not os.path.exists(label_dir):
         label_dir = None
@@ -132,7 +133,10 @@ def convert_track(subset: str):
             if f.is_file() and f.name.endswith('final.json')
         ])
 
-        if vid_name == f'{data_dir}train/label/rec_10090618_snow_10h14m_x-493y-1796tox-1884y1790':
+        if vid_name == osp.join(
+                data_dir,
+                'train/label/rec_10090618_snow_10h14m_x-493y-1796tox-1884y1790'
+        ):
             print('Bump!')
             continue
 
@@ -149,8 +153,8 @@ def convert_track(subset: str):
             width = frame['resolution']['width']
             rot_angle = np.array(frame['extrinsics']['rotation'])
             rot_matrix = tu.angle2rot(rot_angle)
-            gps_to_camera = tu.angle2rot(
-                np.array([np.pi / 2, 0, 0]), inverse=True)
+            gps_to_camera = tu.angle2rot(np.array([np.pi / 2, 0, 0]),
+                                         inverse=True)
             rot_matrix = rot_matrix.dot(gps_to_camera)
             rotation = R.from_matrix(rot_matrix).as_euler('xyz')
             position = [
@@ -163,18 +167,17 @@ def convert_track(subset: str):
             projection = np.array(frame['intrinsics']['cali'])
 
             index = fr_idx
-            img_info = dict(
-                file_name=img_name,
-                cali=projection.tolist(),
-                pose=pose_dict,
-                height=height,
-                width=width,
-                fov=60,
-                near_clip=0.15,
-                timestamp=frame['timestamp'],
-                id=img_id,
-                video_id=vid_id,
-                index=index)
+            img_info = dict(file_name=img_name,
+                            cali=projection.tolist(),
+                            pose=pose_dict,
+                            height=height,
+                            width=width,
+                            fov=60,
+                            near_clip=0.15,
+                            timestamp=frame['timestamp'],
+                            id=img_id,
+                            video_id=vid_id,
+                            index=index)
 
             gta_anno['images'].append(img_info)
 
@@ -199,48 +202,56 @@ def convert_track(subset: str):
                                               (0, 3)).astype(float)
                 center_2d = tu.cameratoimage(location,
                                              projection).flatten().tolist()
-                ann = dict(
-                    id=ann_id,
-                    image_id=image_id,
-                    category_id=cats_mapping[gta_merge_maps[cat]],
-                    instance_id=track_id,
-                    alpha=float(label['box3d']['alpha']),
-                    roty=float(label['box3d']['orientation']),
-                    dimension=[
-                        float(dim) for dim in label['box3d']['dimension']
-                    ],
-                    translation=[
-                        float(loc) for loc in label['box3d']['location']
-                    ],
-                    is_occluded=int(label['attributes']['occluded']),
-                    is_truncated=int(label['attributes']['truncated']),
-                    center_2d=center_2d,
-                    delta_2d=[
-                        center_2d[0] - (x1 + x2) / 2.0,
-                        center_2d[1] - (y1 + y2) / 2.0
-                    ],
-                    bbox=[x1, y1, x2 - x1, y2 - y1],
-                    area=(x2 - x1) * (y2 - y1),
-                    iscrowd=False,
-                    ignore=label['attributes']['ignore'],
-                    segmentation=[[x1, y1, x1, y2, x2, y2, x2, y1]])
+                ann = dict(id=ann_id,
+                           image_id=image_id,
+                           category_id=cats_mapping[gta_merge_maps[cat]],
+                           instance_id=track_id,
+                           alpha=float(label['box3d']['alpha']),
+                           roty=float(label['box3d']['orientation']),
+                           dimension=[
+                               float(dim)
+                               for dim in label['box3d']['dimension']
+                           ],
+                           translation=[
+                               float(loc) for loc in label['box3d']['location']
+                           ],
+                           is_occluded=int(label['attributes']['occluded']),
+                           is_truncated=int(label['attributes']['truncated']),
+                           center_2d=center_2d,
+                           delta_2d=[
+                               center_2d[0] - (x1 + x2) / 2.0,
+                               center_2d[1] - (y1 + y2) / 2.0
+                           ],
+                           bbox=[x1, y1, x2 - x1, y2 - y1],
+                           area=(x2 - x1) * (y2 - y1),
+                           iscrowd=False,
+                           ignore=label['attributes']['ignore'],
+                           segmentation=[[x1, y1, x1, y2, x2, y2, x2, y1]])
                 gta_anno['annotations'].append(ann)
                 ann_id += 1
     return gta_anno
 
 
 def main():
+
     args = parse_args()
+
+    data_dir = 'data/GTA/'
+    out_dir = 'data/GTA/anns/'
+
     print('Convert GTA Tracking dataset to COCO style.')
+    if not osp.isfile(out_dir):
+        os.makedirs(out_dir, exist_ok=True)
+
     if args.set == 'all':
         for set_name in data_set_dict:
-            ann = convert_track(set_name)
-            bu.dump_json(
-                osp.join(out_dir, 'anns', f'tracking_{set_name}.json'), ann)
+            print(osp.join(data_dir, set_name))
+            ann = convert_track(data_dir, set_name)
+            bu.dump_json(osp.join(out_dir, f'tracking_{set_name}.json'), ann)
     else:
-        ann = convert_track(args.set)
-        bu.dump_json(
-            osp.join(out_dir, 'anns', f'tracking_{args.set}.json'), ann)
+        print(osp.join(data_dir, args.set))
+        ann = convert_track(data_dir, args.set)
+        bu.dump_json(osp.join(out_dir, f'tracking_{args.set}.json'), ann)
 
 
 if __name__ == "__main__":

@@ -2,24 +2,18 @@ import os
 import os.path as osp
 import math
 import json
+import numpy as np
+from PIL import Image
 from tqdm import tqdm
 from collections import defaultdict
-import tensorflow.compat.v1 as tf
 
-from PIL import Image
-
-import numpy as np
-from pyquaternion import Quaternion
 from scipy.spatial.transform import Rotation as R
-
+import tensorflow.compat.v1 as tf
 tf.enable_eager_execution()
-
-from waymo_open_dataset.utils import range_image_utils
-from waymo_open_dataset.utils import transform_utils
-from waymo_open_dataset.utils import frame_utils
 from waymo_open_dataset import dataset_pb2 as open_dataset
-
 from nuscenes.utils.geometry_utils import view_points
+
+import scripts.bdd_utils as bu
 
 id_camera_dict = {
     'front': 1,
@@ -70,14 +64,13 @@ def _bbox_inside(box1, box2):
             box1[1] > box2[1] and box1[1] + box1[3] < box2[1] + box2[3]
 
 
-def dump_json(filepath: str, anno: dict):
-    with open(filepath, 'w') as f:
-        json.dump(anno, f)
-
-
 def convert_track(data_dir, phase: str, mini=False):
 
     raw_dir = osp.join(data_dir, 'raw')
+
+    if not osp.exists(osp.join(raw_dir, phase)):
+        print(f"Folder {osp.join(raw_dir, phase)} is not found")
+        return None
 
     coco_json = defaultdict(list)
 
@@ -110,9 +103,8 @@ def convert_track(data_dir, phase: str, mini=False):
                         break
                 cur_video = frame.context.name
                 coco_json['videos'].append(
-                    dict(
-                        id=len(coco_json['videos']),
-                        name=f'{cur_video}_{id_camera_dict[cam]}'))
+                    dict(id=len(coco_json['videos']),
+                         name=f'{cur_video}_{id_camera_dict[cam]}'))
                 fr_id = 0
 
             i_dict = dict()
@@ -302,25 +294,27 @@ def convert_track(data_dir, phase: str, mini=False):
 def main():
 
     data_dir = 'data/Waymo'
-    out_dir = 'data/Waymo'
+    out_dir = 'data/Waymo/anns'
 
     print('Convert Waymo Tracking dataset to COCO style.')
+    if not osp.isfile(out_dir):
+        os.makedirs(out_dir, exist_ok=True)
 
     print("tracking mini")
     coco_json = convert_track(data_dir, "validation", mini=True)
-    dump_json(osp.join(out_dir, 'anns', 'tracking_val_mini.json'), coco_json)
+    bu.dump_json(osp.join(out_dir, 'tracking_val_mini.json'), coco_json)
 
     print("tracking train")
     coco_json = convert_track(data_dir, "training")
-    dump_json(osp.join(out_dir, 'anns', 'tracking_train.json'), coco_json)
+    bu.dump_json(osp.join(out_dir, 'tracking_train.json'), coco_json)
 
     print("tracking validation")
     coco_json = convert_track(data_dir, "validation")
-    dump_json(osp.join(out_dir, 'anns', 'tracking_val.json'), coco_json)
+    bu.dump_json(osp.join(out_dir, 'tracking_val.json'), coco_json)
 
     print("tracking testing")
     coco_json = convert_track(data_dir, "testing")
-    dump_json(osp.join(out_dir, 'anns', 'tracking_test.json'), coco_json)
+    bu.dump_json(osp.join(out_dir, 'tracking_test.json'), coco_json)
 
 
 if __name__ == "__main__":

@@ -12,6 +12,10 @@ def load_json(filename):
 
 
 def dump_json(filename, data):
+    if data is None:
+        print(f"Not saving {filename} since data is None")
+        return
+
     with open(filename, 'w') as f:
         json.dump(data, f)
 

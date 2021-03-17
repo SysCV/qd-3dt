@@ -6,6 +6,7 @@ from scipy.spatial.transform import Rotation as R
 
 import mmcv
 
+import scripts.bdd_utils as bu
 import scripts.kitti_utils as ku
 import scripts.tracking_utils as tu
 
@@ -55,26 +56,30 @@ kitti_cats = {
 }
 
 # 396, 1333
-data_dir = 'data/KITTI/'
-out_dir = 'data/KITTI/'
 val_sets = ['0001', '0004', '0011', '0012', '0013', '0014', '0015', '0018']
 mini_sets = ['0001']
-with open(osp.join(out_dir, 'anns', 'detection_val.txt'), 'r') as f:
+with open(osp.join('scripts', 'object_ap_eval', 'detection_val.txt'),
+          'r') as f:
     det_val_sets = f.read().splitlines()
 
 
-def convert_track(subset, mode=None, adjust_center=True):
+def convert_track(data_dir, mode=None, adjust_center=True):
     kitti = defaultdict(list)
 
-    img_dir = os.path.join(data_dir, subset, 'image_02')
-    label_dir = os.path.join(data_dir, subset, 'label_02')
-    cali_dir = os.path.join(data_dir, subset, 'calib')
-    oxt_dir = os.path.join(data_dir, subset, 'oxts')
-    if not os.path.exists(label_dir):
+    img_dir = osp.join(data_dir, 'image_02')
+    label_dir = osp.join(data_dir, 'label_02')
+    cali_dir = osp.join(data_dir, 'calib')
+    oxt_dir = osp.join(data_dir, 'oxts')
+
+    if not osp.exists(img_dir):
+        print(f"Folder {img_dir} is not found")
+        return None
+
+    if not osp.exists(label_dir):
         label_dir = None
 
     vid_names = sorted(os.listdir(img_dir))
-    print(f"{subset} with {len(vid_names)} sequences")
+    print(f"{data_dir} with {len(vid_names)} sequences")
 
     for k, v in cats_mapping.items():
         kitti['categories'].append(dict(id=v, name=k))
@@ -112,22 +117,21 @@ def convert_track(subset, mode=None, adjust_center=True):
 
             rotation = R.from_matrix(poses[fr].rotation).as_euler('xyz')
             position = poses[fr].position - poses[0].position
-            pose_dict = dict(
-                rotation=rotation.tolist(), position=position.tolist())
+            pose_dict = dict(rotation=rotation.tolist(),
+                             position=position.tolist())
 
             height, width, _ = img.shape
             index = fr
-            img_info = dict(
-                file_name=img_name,
-                cali=projection.tolist(),
-                pose=pose_dict,
-                height=height,
-                width=width,
-                fov=60,
-                near_clip=0.15,
-                id=img_id,
-                video_id=vid_id,
-                index=index)
+            img_info = dict(file_name=img_name,
+                            cali=projection.tolist(),
+                            pose=pose_dict,
+                            height=height,
+                            width=width,
+                            fov=60,
+                            near_clip=0.15,
+                            id=img_id,
+                            video_id=vid_id,
+                            index=index)
             kitti['images'].append(img_info)
             ind2id[index] = img_id
             img_id += 1
@@ -167,47 +171,51 @@ def convert_track(subset, mode=None, adjust_center=True):
                         float(label[15])
                     ]]), projection).flatten().tolist()
 
-                ann = dict(
-                    id=ann_id,
-                    image_id=image_id,
-                    category_id=cats_mapping[kitti_cats[cat]],
-                    instance_id=track_id,
-                    alpha=float(label[5]),
-                    roty=float(label[16]),
-                    dimension=[
-                        float(label[10]),
-                        float(label[11]),
-                        float(label[12])
-                    ],
-                    translation=[
-                        float(label[13]),
-                        float(label[14]) - y_cen_adjust,
-                        float(label[15])
-                    ],
-                    is_occluded=int(label[4]),
-                    is_truncated=float(label[3]),
-                    center_2d=center_2d,
-                    delta_2d=[
-                        center_2d[0] - (x1 + x2) / 2.0,
-                        center_2d[1] - (y1 + y2) / 2.0
-                    ],
-                    bbox=[x1, y1, x2 - x1, y2 - y1],
-                    area=(x2 - x1) * (y2 - y1),
-                    iscrowd=False,
-                    ignore=False,
-                    segmentation=[[x1, y1, x1, y2, x2, y2, x2, y1]])
+                ann = dict(id=ann_id,
+                           image_id=image_id,
+                           category_id=cats_mapping[kitti_cats[cat]],
+                           instance_id=track_id,
+                           alpha=float(label[5]),
+                           roty=float(label[16]),
+                           dimension=[
+                               float(label[10]),
+                               float(label[11]),
+                               float(label[12])
+                           ],
+                           translation=[
+                               float(label[13]),
+                               float(label[14]) - y_cen_adjust,
+                               float(label[15])
+                           ],
+                           is_occluded=int(label[4]),
+                           is_truncated=float(label[3]),
+                           center_2d=center_2d,
+                           delta_2d=[
+                               center_2d[0] - (x1 + x2) / 2.0,
+                               center_2d[1] - (y1 + y2) / 2.0
+                           ],
+                           bbox=[x1, y1, x2 - x1, y2 - y1],
+                           area=(x2 - x1) * (y2 - y1),
+                           iscrowd=False,
+                           ignore=False,
+                           segmentation=[[x1, y1, x1, y2, x2, y2, x2, y1]])
                 kitti['annotations'].append(ann)
                 ann_id += 1
     return kitti
 
 
-def convert_det(subset, mode=None, adjust_center=True):
+def convert_det(data_dir, mode=None, adjust_center=True):
     kitti = defaultdict(list)
 
-    img_dir = os.path.join(data_dir, subset, 'image_2')
-    label_dir = os.path.join(data_dir, subset, 'label_2')
-    cali_dir = os.path.join(data_dir, subset, 'calib')
-    if not os.path.exists(label_dir):
+    img_dir = osp.join(data_dir, 'image_2')
+    label_dir = osp.join(data_dir, 'label_2')
+    cali_dir = osp.join(data_dir, 'calib')
+
+    if not osp.exists(img_dir):
+        print(f"Folder {img_dir} is not found")
+        return None
+
+    if not osp.exists(label_dir):
         label_dir = None
 
     img_names = sorted(os.listdir(img_dir))
@@ -231,17 +239,16 @@ def convert_det(subset, mode=None, adjust_center=True):
         projection = ku.read_calib_det(cali_dir, img_id)
 
         index = int(img_name.split('.')[0])
-        img_info = dict(
-            file_name=osp.join(img_dir, img_name),
-            cali=projection.tolist(),
-            pose=pose_dict,
-            height=height,
-            width=width,
-            fov=60,
-            near_clip=0.15,
-            id=img_id,
-            video_id=0,
-            index=index)
+        img_info = dict(file_name=osp.join(img_dir, img_name),
+                        cali=projection.tolist(),
+                        pose=pose_dict,
+                        height=height,
+                        width=width,
+                        fov=60,
+                        near_clip=0.15,
+                        id=img_id,
+                        video_id=0,
+                        index=index)
         kitti['images'].append(img_info)
 
         if label_dir:
@@ -274,35 +281,34 @@ def convert_det(subset, mode=None, adjust_center=True):
                         float(label[13])
                     ]]), projection).flatten().tolist()
 
-                ann = dict(
-                    id=ann_id,
-                    image_id=img_id,
-                    instance_id=track_id,
-                    category_id=cats_mapping[kitti_cats[cat]],
-                    alpha=float(label[3]),
-                    roty=float(label[14]),
-                    dimension=[
-                        float(label[8]),
-                        float(label[9]),
-                        float(label[10])
-                    ],
-                    translation=[
-                        float(label[11]),
-                        float(label[12]) - y_cen_adjust,
-                        float(label[13])
-                    ],
-                    is_occluded=int(label[2]),
-                    is_truncated=float(label[1]),
-                    center_2d=center_2d,
-                    delta_2d=[
-                        center_2d[0] - (x1 + x2) / 2.0,
-                        center_2d[1] - (y1 + y2) / 2.0
-                    ],
-                    bbox=[x1, y1, x2 - x1, y2 - y1],
-                    area=(x2 - x1) * (y2 - y1),
-                    iscrowd=False,
-                    ignore=False,
-                    segmentation=[[x1, y1, x1, y2, x2, y2, x2, y1]])
+                ann = dict(id=ann_id,
+                           image_id=img_id,
+                           instance_id=track_id,
+                           category_id=cats_mapping[kitti_cats[cat]],
+                           alpha=float(label[3]),
+                           roty=float(label[14]),
+                           dimension=[
+                               float(label[8]),
+                               float(label[9]),
+                               float(label[10])
+                           ],
+                           translation=[
+                               float(label[11]),
+                               float(label[12]) - y_cen_adjust,
+                               float(label[13])
+                           ],
+                           is_occluded=int(label[2]),
+                           is_truncated=float(label[1]),
+                           center_2d=center_2d,
+                           delta_2d=[
+                               center_2d[0] - (x1 + x2) / 2.0,
+                               center_2d[1] - (y1 + y2) / 2.0
+                           ],
+                           bbox=[x1, y1, x2 - x1, y2 - y1],
+                           area=(x2 - x1) * (y2 - y1),
+                           iscrowd=False,
+                           ignore=False,
+                           segmentation=[[x1, y1, x1, y2, x2, y2, x2, y1]])
                 kitti['annotations'].append(ann)
                 ann_id += 1
                 track_id += 1
@@ -311,43 +317,57 @@ def convert_det(subset, mode=None, adjust_center=True):
 
 def main():
 
+    data_dir = 'data/KITTI/'
+    out_dir = 'data/KITTI/anns'
+
     print('Convert KITTI Tracking dataset to COCO style.')
+    if not osp.isfile(out_dir):
+        os.makedirs(out_dir, exist_ok=True)
 
     print('tracking validate subset')
-    ann = convert_track('tracking/training', mode='mini')
-    mmcv.dump(ann, osp.join(out_dir, 'anns', 'tracking_subval_mini.json'))
+    track_dir = osp.join(data_dir, 'tracking', 'training')
+    ann = convert_track(track_dir, mode='mini')
+    bu.dump_json(osp.join(out_dir, 'tracking_subval_mini.json'), ann)
 
     print('tracking validate subset')
-    ann = convert_track('tracking/training', mode='val')
-    mmcv.dump(ann, osp.join(out_dir, 'anns', 'tracking_subval.json'))
+    track_dir = osp.join(data_dir, 'tracking', 'training')
+    ann = convert_track(track_dir, mode='val')
+    bu.dump_json(osp.join(out_dir, 'tracking_subval.json'), ann)
 
     print("tracking train")
-    ann = convert_track('tracking/training', mode=None)
-    mmcv.dump(ann, osp.join(out_dir, 'anns', 'tracking_train.json'))
+    track_dir = osp.join(data_dir, 'tracking', 'training')
+    ann = convert_track(track_dir, mode=None)
+    bu.dump_json(osp.join(out_dir, 'tracking_train.json'), ann)
 
     print("tracking train subset")
-    ann = convert_track('tracking/training', mode='train')
-    mmcv.dump(ann, osp.join(out_dir, 'anns', 'tracking_subtrain.json'))
+    track_dir = osp.join(data_dir, 'tracking', 'training')
+    ann = convert_track(track_dir, mode='train')
+    bu.dump_json(osp.join(out_dir, 'tracking_subtrain.json'), ann)
 
     print('tracking test')
+    track_dir = osp.join(data_dir, 'tracking', 'testing')
     ann = convert_track('tracking/testing', mode=None)
-    mmcv.dump(ann, osp.join(out_dir, 'anns', 'tracking_test.json'))
+    bu.dump_json(osp.join(out_dir, 'tracking_test.json'), ann)
 
     print('detection train')
-    ann = convert_det('detection/training', mode=None)
-    mmcv.dump(ann, osp.join(out_dir, 'anns', 'detection_train.json'))
+    detect_dir = osp.join(data_dir, 'detection', 'training')
+    ann = convert_det(detect_dir, mode=None)
+    bu.dump_json(osp.join(out_dir, 'detection_train.json'), ann)
 
     print('detection train subset')
-    ann = convert_det('detection/training', mode='train')
-    mmcv.dump(ann, osp.join(out_dir, 'anns', 'detection_subtrain.json'))
+    detect_dir = osp.join(data_dir, 'detection', 'training')
+    ann = convert_det(detect_dir, mode='train')
+    bu.dump_json(osp.join(out_dir, 'detection_subtrain.json'), ann)
 
     print('detection validate subset')
-    ann = convert_det('detection/training', mode='val')
-    mmcv.dump(ann, osp.join(out_dir, 'anns', 'detection_subval.json'))
+    detect_dir = osp.join(data_dir, 'detection', 'training')
+    ann = convert_det(detect_dir, mode='val')
+    bu.dump_json(osp.join(out_dir, 'detection_subval.json'), ann)
 
     print('detection test')
-    ann = convert_det('detection/testing', mode=None)
-    mmcv.dump(ann, osp.join(out_dir, 'anns', 'detection_test.json'))
+    detect_dir = osp.join(data_dir, 'detection', 'testing')
+    ann = convert_det(detect_dir, mode=None)
+    bu.dump_json(osp.join(out_dir, 'detection_test.json'), ann)
 
 
 if __name__ == "__main__":
