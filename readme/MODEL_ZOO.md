@@ -30,10 +30,14 @@ ${QD-3DT}/checkpoints/batch128_min10_seq10_dim7_VeloLSTM_nuscenes_100_linear.pth
 
 ### Waymo
 
+```diff
+! NOTE: Due to Waymo Open Dataset license, we cannot release the models trained on the dataset.
+```
+
 | Model                    | GPUs |Train time| Val MOTA/L2 [0m,30m)] |  Download | 
 |--------------------------|------|----------|-----------------------|-----------|
-|     Waymo_3Dtracking     |  8   |   336h   |         0.0001        | [model](https://drive.google.com/file/d/1ShCBNHNrCbfP3Z8FSm1bti-wNsT_FGf-/view?usp=sharing) |
-| Waymo_LSTM_motion_model  |  1   |   24h    |           -           | [model](https://drive.google.com/file/d/1AyHmRnTmlFrh1Z75FQdX2RuBsiP8w0bf/view?usp=sharing) |
+|     Waymo_3Dtracking     |  8   |   336h   |         0.0001        | [model]() |
+| Waymo_LSTM_motion_model  |  1   |   24h    |           -           | [model]() |
 
 Place the tracking model weight under
 ```bash
