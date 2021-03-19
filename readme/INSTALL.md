@@ -1,7 +1,7 @@
 # Installation Guide
 
 ## Prerequisites
-The master branch works with **PyTorch 1.1** or higher.
+The main branch works with **PyTorch 1.3.1** or higher.
 
 - Linux (tested on Ubuntu 16.04.4 LTS)
 - Python: 3.7.6
@@ -25,7 +25,7 @@ Python dependencies list in `requirements.txt`
 ## Installation
 - Clone this repo:
 ```bash
-git clone -b master --single-branch https://github.com/SysCV/qd-3dt.git
+git clone -b main --single-branch https://github.com/SysCV/qd-3dt.git
 ```
 
 - Create folders
@@ -79,36 +79,40 @@ pyenv virtualenv 3.7.6 Nusc
 pyenv activate Nusc
 pip install nuscenes-devkit
 pip install -r requirements_nusc.txt
+pyenv deactivate
 ```
 
 - Install AMOTA@0.2 evaluation python-sdk.
 ```bash
-cd $HOME
+cd scripts/
 git clone https://github.com/nutonomy/nuscenes-devkit
 cd nuscenes-devkit
 
 # Check to the commit for AMOTA@0.2 evaluation
 git checkout e2d8c4b331567dc0bc36271dc21cdef65970eb7e
+cd ../../
 ```
 
 ## Waymo
 ### Build the [waymo-open-dataset](https://github.com/waymo-research/waymo-open-dataset) for local evaluation.
 
-- First follow [local compilation](https://github.com/waymo-research/waymo-open-dataset/blob/master/docs/quick_start.md#local-compilation-without-docker-system-requirements) to setup waymo-open-dataset toolkit under $HOME.
+- First follow [local compilation](https://github.com/waymo-research/waymo-open-dataset/blob/master/docs/quick_start.md#local-compilation-without-docker-system-requirements) to setup waymo-open-dataset toolkit under `scripts/waymo_devkit/`.
 
 - Compile required evaluation metric functions for both detection and tracking.
 ```bash
-cd $HOME/waymo-od
+cd scripts/waymo_devkit/waymo-od
 
 bazel build waymo_open_dataset/metrics/tools/compute_detection_metrics_main
 bazel build waymo_open_dataset/metrics/tools/compute_tracking_metrics_main
+bazel build waymo_open_dataset/metrics/tools/create_submission
 ```
 
-- Soft-link ``$HOME/waymo-od/bazel-bin`` under ``scripts/waymo_devkit`` for evaluation usage. Also, create and place the [submission file](https://github.com/waymo-research/waymo-open-dataset/blob/master/waymo_open_dataset/metrics/tools/submission.txtpb) for your task.
+- Soft-link ``scripts/waymo_devkit/waymo-od/bazel-bin`` under ``scripts/waymo_devkit`` for evaluation usage. Also, create and place the [submission file](https://github.com/waymo-research/waymo-open-dataset/blob/master/waymo_open_dataset/metrics/tools/submission.txtpb) for your task.
 ```bash
 ${QD-3DT_ROOT}
 |-- scripts
 `-- |-- waymo_devkit
+    |-- |-- waymo-od
     `-- |-- bazel-bin
         |-- eval_waymo_3d.py
         |-- generate_waymo_gt.py

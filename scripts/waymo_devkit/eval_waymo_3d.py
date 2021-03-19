@@ -183,14 +183,14 @@ def create_waymo_sumbit(waymo_annos, out_path):
 
 def eval_detection(out_path, gt_bin):
     print('Evaluating Waymo 3D detection results...')
-    cmd = 'scripts/waymo_devkit/bazel-bin/waymo_open_dataset/metrics/tools/' + \
+    cmd = 'scripts/waymo_devkit/waymo-od/bazel-bin/waymo_open_dataset/metrics/tools/' + \
         'compute_detection_metrics_main {} {}'.format(out_path, gt_bin)
     subprocess.call(cmd, shell=True)
 
 
 def eval_tracking(out_path, gt_bin):
     print('Evaluating Waymo 3D tracking results...')
-    cmd = 'scripts/waymo_devkit/bazel-bin/waymo_open_dataset/metrics/tools/' + \
+    cmd = 'scripts/waymo_devkit/waymo-od/bazel-bin/waymo_open_dataset/metrics/tools/' + \
         'compute_tracking_metrics_main {} {}'.format(out_path, gt_bin)
     subprocess.call(cmd, shell=True)
 

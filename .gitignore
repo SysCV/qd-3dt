@@ -128,3 +128,5 @@ wandb
 scripts/*/*.json
 scripts/local/save
 scripts/waymo_devkit/bazel-bin
+scripts/nuscenes-devkit/
+scripts/waymo_devkit/waymo-od/

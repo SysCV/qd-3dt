@@ -25,7 +25,7 @@ if [ ! -d "${work_dir}/result_3D_DET" ]; then
     mkdir "${work_dir}/result_3D_DET"
 fi
 
-./scripts/waymo_devkit/bazel-bin/waymo_open_dataset/metrics/tools/create_submission \
+./scripts/waymo_devkit/waymo-od/bazel-bin/waymo_open_dataset/metrics/tools/create_submission \
 --input_filenames=${work_dir}/result_3D.bin \
 --output_filename=${work_dir}/result_3D_DET/submission.bin \
 --submission_filename='scripts/waymo_devkit/submission_3d_det.txtpb'
@@ -37,7 +37,7 @@ if [ ! -d "${work_dir}/result_3D_MOT" ]; then
     mkdir "${work_dir}/result_3D_MOT"
 fi
 
-./scripts/waymo_devkit/bazel-bin/waymo_open_dataset/metrics/tools/create_submission \
+./scripts/waymo_devkit/waymo-od/bazel-bin/waymo_open_dataset/metrics/tools/create_submission \
 --input_filenames=${work_dir}/result_3D.bin \
 --output_filename=${work_dir}/result_3D_MOT/submission.bin \
 --submission_filename='scripts/waymo_devkit/submission_3d_mot.txtpb'

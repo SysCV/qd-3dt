@@ -31,7 +31,7 @@ python scripts/eval_nusc_mot.py \
 --gt_anns=data/nuscenes/anns/tracking_val.json 2>&1 | tee ${folder}/eval_mot_nusc.txt
 
 # AMOTA@0.2
-export PYTHONPATH="${PYTHONPATH}:$HOME/nuscenes-devkit/python-sdk"
+export PYTHONPATH="${PYTHONPATH}:scripts/nuscenes-devkit/python-sdk"
 
 python scripts/eval_nusc_mot.py \
 --version=v1.0-trainval \
