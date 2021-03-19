@@ -80,7 +80,7 @@ $ python scripts/waymo_devkit/generate_waymo_gt.py
 
 - Download images, annotations, oxts and calibration information from [KITTI Tracking website](http://www.cvlibs.net/datasets/kitti/eval_tracking.php) and [KITTI Detection website](http://www.cvlibs.net/datasets/kitti/eval_object.php?obj_benchmark=3d). 
 
-- UUnzip (for zip files), and place (or symlink) the data as below.
+- Unzip (for zip files), and place (or symlink) the data as below.
   
 ```bash
 ${QD-3DT_ROOT}
@@ -141,6 +141,14 @@ ${QD-3DT_ROOT}
 $ python scripts/kitti2coco.py
 ```
 
+- Copy or Soft link the `*.seqmap` under `scripts/object_ap_eval/seqmaps/` to `data/KITTI/anns/` for later evaluation
+
+```bash
+# Under ${QD-3DT_ROOT}
+ln -sr scripts/object_ap_eval/seqmaps/*.seqmap data/KITTI/anns
+```
+
+
 - The resulting data structure should look like:
 
 ```bash
@@ -151,6 +159,7 @@ ${QD-3DT_ROOT}
         |-- detection
         `-- anns
             |-- tracking_train.json
+            |-- tracking_train.json.seqmap
             |-- tracking_test.json
             `-- ...
 ```
