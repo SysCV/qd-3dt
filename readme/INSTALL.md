@@ -98,6 +98,8 @@ cd ../../
 
 - First follow [local compilation](https://github.com/waymo-research/waymo-open-dataset/blob/master/docs/quick_start.md#local-compilation-without-docker-system-requirements) to setup waymo-open-dataset toolkit under `scripts/waymo_devkit/`.
 
+- NOTE: you need to checkout to commit `b2b2fc8f06ed6801aec1ea2d406d559bff08b6b5` instead of `remotes/origin/master` for successful installation.
+
 - Compile required evaluation metric functions for both detection and tracking.
 ```bash
 cd scripts/waymo_devkit/waymo-od
@@ -107,13 +109,12 @@ bazel build waymo_open_dataset/metrics/tools/compute_tracking_metrics_main
 bazel build waymo_open_dataset/metrics/tools/create_submission
 ```
 
-- Soft-link ``scripts/waymo_devkit/waymo-od/bazel-bin`` under ``scripts/waymo_devkit`` for evaluation usage. Also, create and place the [submission file](https://github.com/waymo-research/waymo-open-dataset/blob/master/waymo_open_dataset/metrics/tools/submission.txtpb) for your task.
+- Create and place the [submission file](https://github.com/waymo-research/waymo-open-dataset/blob/master/waymo_open_dataset/metrics/tools/submission.txtpb) for your task.
 ```bash
 ${QD-3DT_ROOT}
 |-- scripts
 `-- |-- waymo_devkit
-    |-- |-- waymo-od
-    `-- |-- bazel-bin
+    `-- |-- waymo-od
         |-- eval_waymo_3d.py
         |-- generate_waymo_gt.py
         |-- submission_3d_det.txtpb
