@@ -346,7 +346,7 @@ def main():
 
     print('tracking test')
     track_dir = osp.join(data_dir, 'tracking', 'testing')
-    ann = convert_track('tracking/testing', mode=None)
+    ann = convert_track(track_dir, mode=None)
     bu.dump_json(osp.join(out_dir, 'tracking_test.json'), ann)
 
     print('detection train')
