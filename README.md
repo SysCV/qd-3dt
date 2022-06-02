@@ -8,15 +8,16 @@ Monocular Quasi-Dense 3D Object Tracking (QD-3DT) is an online framework detects
 
 > [**Monocular Quasi-Dense 3D Object Tracking**](https://arxiv.org/abs/2103.07351),            
 > Hou-Ning Hu, Yung-Hsu Yang, Tobias Fischer, Trevor Darrell, Fisher Yu, Min Sun,        
-> *arXiv technical report ([arXiv 2103.07351](https://arxiv.org/abs/2103.07351))* 
+> *Paper ([arXiv 2103.07351](https://arxiv.org/abs/2103.07351))* 
 > *Project Website ([QD-3DT](https://eborboihuc.github.io/QD-3DT/))* 
 
 
-    @article{Hu2021QD3DT,
-        author = {Hu, Hou-Ning and Yang, Yung-Hsu and Fischer, Tobias and Yu, Fisher and Darrell, Trevor and Sun, Min},
-        title = {Monocular Quasi-Dense 3D Object Tracking},
-        journal = {ArXiv:2103.07351},
-        year = {2021}
+    @article{hu2022monocular,
+      title={Monocular quasi-dense 3d object tracking},
+      author={Hu, Hou-Ning and Yang, Yung-Hsu and Fischer, Tobias and Darrell, Trevor and Yu, Fisher and Sun, Min},
+      journal={IEEE Transactions on Pattern Analysis and Machine Intelligence},
+      year={2022},
+      publisher={IEEE}
     }
 
 ## Abstract
