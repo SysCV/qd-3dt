@@ -21,6 +21,27 @@ The main branch works with **PyTorch 1.3.1** or higher.
 
 Python dependencies list in `requirements.txt` 
 
+## New Prerequisites
+We now support the higher PyTorch and CUDA version and thus can be run on newer devices.
+
+- Linux (tested on Ubuntu 20.04 LTS)
+- Python: 3.7.16
+- PyTorch: 1.12.0 (with CUDA 11.3)
+- nvcc: 11.3
+- gcc: 9.4.0
+- Nvidia driver version: 510.73
+- GPU: Nvidia RTX 3090
+
+You could change the versio s of torch and torch-vision in ``requirements.txt``. You may encounter some errors during training and inference with new settings. Try the following solutions:
+```bash
+# numpy related error
+pip uninstall numpy
+pip install numpy
+
+# numba related error
+pip uninstall numba
+pip install numba
+```
 
 ## Installation
 - Clone this repo:

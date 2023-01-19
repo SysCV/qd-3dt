@@ -359,9 +359,16 @@ class Embedding3DBEVMotionUncertaintyTracker(mother):
                     memo_dets_xy_box = get_xy_box(memo_boxes_3d_predict)
                     scores_iou = bbox_overlaps(dets_xy_box, memo_dets_xy_box)
                 elif self.track_bbox_iou == 'box3d':
-                    depth_weight = F.pairwise_distance(
-                        boxes_3d[..., None],
-                        memo_boxes_3d_predict[..., None].transpose(2, 0))
+                    bbox3d_weight_list = []
+                    for memo_box_3d_predict in memo_boxes_3d_predict:
+                        bbox3d_weight_list.append(
+                            F.pairwise_distance(
+                                boxes_3d,
+                                memo_box_3d_predict,
+                                keepdim=True,
+                            )
+                        )
+                    depth_weight = torch.cat(bbox3d_weight_list, axis=1)
                     scores_iou = torch.exp(-depth_weight / 10.0)
                 elif self.track_bbox_iou == 'box2d_depth_aware':
                     depth_weight = F.pairwise_distance(
@@ -439,24 +446,40 @@ class Embedding3DBEVMotionUncertaintyTracker(mother):
                         cos_sim /= 2.0
                         depth_weight *= cos_sim
                     elif self.depth_match_metric == 'motion':
-                        centroid_weight = F.pairwise_distance(
-                            obsv_boxes_3d[..., :3, None],
-                            memo_boxes_3d_predict[..., :3,
-                                                  None].transpose(2, 0))
+                        centroid_weight_list = []
+                        for memo_box_3d_predict in memo_boxes_3d_predict:
+                            centroid_weight_list.append(
+                                F.pairwise_distance(
+                                    obsv_boxes_3d[:, :3], memo_box_3d_predict[:3], keepdim=True
+                                )
+                            )
+                        centroid_weight = torch.cat(centroid_weight_list, axis=1)
                         centroid_weight = torch.exp(-centroid_weight / 10.0)
                         # Moving distance should be aligned
                         # V_observed-tracked vs. V_velocity
-                        motion_weight = F.pairwise_distance(
-                            obsv_boxes_3d[..., :3, None] -
-                            memo_boxes_3d[..., :3, None].transpose(2, 0),
-                            memo_vs[..., :3, None].transpose(2, 0))
+                        motion_weight_list = []
+                        obsv_vs = (
+                            obsv_boxes_3d[:, :3, None]
+                            - memo_boxes_3d[:, :3, None].transpose(2, 0)
+                        ).transpose(1, 2)
+                        for v in obsv_vs:
+                            motion_weight_list.append(
+                                F.pairwise_distance(v, memo_vs[:, :3]).unsqueeze(0)
+                            )
+                        motion_weight = torch.cat(motion_weight_list, axis=0)
                         motion_weight = torch.exp(-motion_weight / 5.0)
                         # Moving direction should be aligned
                         # Set to 0.5 when two vector not within +-90 degree
-                        cos_sim = F.cosine_similarity(
-                            obsv_boxes_3d[..., :2, None] -
-                            memo_boxes_3d[..., :2, None].transpose(2, 0),
-                            memo_vs[..., :2, None].transpose(2, 0))
+                        cos_sim_list = []
+                        obsv_direct = (
+                            obsv_boxes_3d[:, :2, None]
+                            - memo_boxes_3d[:, :2, None].transpose(2, 0)
+                        ).transpose(1, 2)
+                        for d in obsv_direct:
+                            cos_sim_list.append(
+                                F.cosine_similarity(d, memo_vs[:, :2]).unsqueeze(0)
+                            )
+                        cos_sim = torch.cat(cos_sim_list, axis=0)
                         cos_sim += 1.0
                         cos_sim /= 2.0
                         depth_weight = cos_sim * centroid_weight + (

@@ -377,7 +377,8 @@ def best_model_Nusc(args, out_path: str):
                 cfg.data.test.ann_file['VID'].split('.')[1]
             ])
         cfg.data.test.img_prefix = cfg.data.val.img_prefix
-        run_inference_and_evaluate(args, cfg, out_path_exp)
+        if not args.full_frames:
+            run_inference_and_evaluate(args, cfg, out_path_exp)
 
     if args.show:
         run_visualize(args.dataset_name, cfg, out_path_exp, cat_mapping[args.dataset_name])
