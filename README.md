@@ -20,6 +20,10 @@ Monocular Quasi-Dense 3D Object Tracking (QD-3DT) is an online framework detects
       publisher={IEEE}
     }
 
+## News
+[2024/05/16]: We released the code for our [CC-3DT](https://arxiv.org/abs/2212.01247) paper.
+Please check the [here](https://github.com/SysCV/vis4d/tree/main/vis4d/zoo/cc_3dt) for more details and enjoy new tracking performance!
+
 ## Abstract
 
 A reliable and accurate 3D tracking framework is essential for predicting future locations of surrounding objects and planning the observer’s actions in numerous applications such as autonomous driving. We propose a framework that can effectively associate moving objects over time and estimate their full 3D bounding box information from a sequence of 2D images captured on a moving platform. The object association leverages quasi-dense similarity learning to identify objects in various poses and viewpoints with appearance cues only. After initial 2D association, we further utilize 3D bounding boxes depth-ordering heuristics for robust instance association and motion-based 3D trajectory prediction for re-identification of occluded vehicles. In the end, an LSTM-based object velocity learning module aggregates the long-term trajectory information for more accurate motion extrapolation. Experiments on our proposed simulation data and real-world benchmarks, including KITTI, nuScenes, and Waymo datasets, show that our tracking framework offers robust object association and tracking on urban-driving scenarios. On the Waymo Open benchmark, we establish the first camera-only baseline in the 3D tracking and 3D detection challenges. Our quasi-dense 3D tracking pipeline achieves impressive improvements on the nuScenes 3D tracking benchmark with near five times tracking accuracy of the best vision-only submission among all published methods.
